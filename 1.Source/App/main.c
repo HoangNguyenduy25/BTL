@@ -18,7 +18,7 @@ int main(void)
     BSP_LCD_Init();
 
     BSP_DHT_Init();
-    bsp_uart_init();
+    usart0_init();
     BSP_Timer1_Init();
 
     // Bật ngắt toàn cục
@@ -36,9 +36,8 @@ int main(void)
 
     while (1)
     {
-        
         App_LCD_Update();
-        // Send data
+        // Xử lý gói tin và giao tiếp UART
         app_uart_process();
 
         // Read data from DHT11 sensor

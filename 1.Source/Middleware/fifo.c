@@ -4,87 +4,36 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 
-Fifo_t rx_fifo;
-
-/**
- * Description
- * Ring buffer initialize
- */
-void fifo_init(Fifo_t * ring_buffer, void* buffer, uint16_t buffer_size)
-{
-    ring_buffer -> tail_index = 0;
-    ring_buffer -> head_index = 0;
-    ring_buffer -> fill_size  = 0;
-
-    ring_buffer -> buffer_size = buffer_size;
-    ring_buffer -> buffer = buffer;
+void rbuffer_init(volatile ringbuffer_t* rb) {
+    
+        rb->in = 0;
+        rb->out = 0;
+        rb->count = 0;
+    
 }
 
-/**
- * Description
- * Add a character into ring buffer
- */
-void fifo_char_put(Fifo_t * ring_buffer, uint8_t c)
-{
-    uint16_t next_tail_index;
-    uint16_t next_head_index;
-
-    ring_buffer -> buffer[ring_buffer -> tail_index] = c;
-
-    next_tail_index = (++ring_buffer -> tail_index) % ring_buffer->buffer_size;
-    ring_buffer->tail_index = next_tail_index;
-
-    if(ring_buffer -> fill_size ==  ring_buffer -> buffer_size)
-    {
-        next_head_index = (++ring_buffer -> head_index) % ring_buffer -> buffer_size;
-        ring_buffer -> head_index = next_head_index;
-    }
-    else
-    {
-        ring_buffer -> fill_size++;
-    }
+uint8_t rbuffer_count(volatile ringbuffer_t* rb) {
+    return rb->count;
 }
 
-/**
- * Description
- * Get ad character from ring buffer
- */
-uint8_t fifo_char_get(Fifo_t * ring_buffer)
-{
-    uint16_t ret = 0;
-    uint16_t next_head_index;
-    uint8_t sreg = SREG;
-    cli();
-
-    if(ring_buffer->fill_size)
-    {
-        ret = ring_buffer->buffer[ring_buffer->head_index];
-
-        next_head_index = (++ring_buffer->head_index) % ring_buffer->buffer_size;
-        ring_buffer->head_index = next_head_index;
-
-        ring_buffer->fill_size--;
-    }
-
-    SREG = sreg;
-    return ret;
+bool rbuffer_full(volatile ringbuffer_t* rb) {
+    return (rb->count == (uint8_t)RBUFFER_SIZE);
 }
 
-uint8_t ring_buffer_status(Fifo_t * ring_buffer)
-{
-    uint16_t size;
-    uint8_t sreg = SREG;
-    cli();
-    size = ring_buffer->fill_size;
-    SREG = sreg;
+bool rbuffer_empty(volatile ringbuffer_t* rb) {
+    return (rb->count == 0);
+}
 
-    if(size == 0)
-    {
-        return RING_BUF_EMPTY;
-    }
-    else if (size >= ring_buffer->buffer_size)
-    {
-        return RING_BUF_FULL;
-    }
-    return RING_BUF_NOT_EMPTY;
+void rbuffer_insert(char data, volatile ringbuffer_t* rb) {   
+    *(rb->buffer + rb->in) = data;
+    rb->in = (rb->in + 1) & ((uint8_t)RBUFFER_SIZE - 1);
+    rb->count++;
+    
+}
+
+char rbuffer_remove(volatile ringbuffer_t* rb) {
+    char data = *(rb->buffer + rb->out);
+        rb->out = (rb->out + 1) & ((uint8_t)RBUFFER_SIZE - 1);
+        rb->count--;
+    return data;
 }

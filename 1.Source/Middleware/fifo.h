@@ -6,45 +6,46 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <string.h>
+#include <avr/io.h>
 
-#define RING_BUF_EMPTY 0u
-#define RING_BUF_FULL  1u
-#define RING_BUF_NOT_EMPTY 2u
+/* Define Ring Buffer Size */
+#define RBUFFER_SIZE 32
 
-/**
- * FIFO struct
- */
-typedef struct
-{
-    uint8_t *buffer;               /* pointer to the start of the FIFO buffer */
-    volatile uint16_t fill_size;   /* number of elements in the FIFO buffer */
-    volatile uint16_t head_index;  /* index to where next element will be removed */
-    volatile uint16_t tail_index;  /* index to where next element will be inserted */
-    uint16_t buffer_size;          /* total buffer capacity */
-}Fifo_t;
+/* Enable USART0 */
+#define USART0_ENABLE
+#define UART0_CONSOLE
 
-extern Fifo_t rx_fifo;
+/* Define error codes */
+#define USART_BUFFER_OVERFLOW   0x6400
+#define USART_FRAME_ERROR       0x0400
+#define USART_PARITY_ERROR      0x0200
+#define USART_NO_DATA           0x0100
 
-/**
- * Description
- * Ring buffer initialize
- */
-void fifo_init(Fifo_t * ring_buffer, void* buffer, uint16_t buffer_size);
+// RINGBUFFER STRUCT
+typedef struct { 
+    volatile char     buffer[RBUFFER_SIZE];
+    volatile uint8_t  in;
+    volatile uint8_t  out;
+    volatile uint8_t  count;
+} ringbuffer_t;
 
-/**
- * Description
- * Add a character into ring buffer
- */
-void fifo_char_put(Fifo_t * ring_buffer, uint8_t c);
 
-/**
- * Description
- * Get ad character from ring buffer
- */
-uint8_t fifo_char_get(Fifo_t * ring_buffer);
 
-/**
- * Check ring buffer status
- */
-uint8_t ring_buffer_status(Fifo_t * ring_buffer);
+// USART META STRUCT
+typedef struct { 
+    volatile ringbuffer_t rb_rx;    // Rx ringbuffer
+    volatile ringbuffer_t rb_tx;    // Tx ringbuffer
+    volatile uint16_t usart_error;   // Holds error from RXDATAH
+} usart_meta_t;
+
+/* Ring buffer definition */
+void rbuffer_init(volatile ringbuffer_t* rb);
+uint8_t rbuffer_count(volatile ringbuffer_t* rb);
+bool rbuffer_full(volatile ringbuffer_t* rb);
+bool rbuffer_empty(volatile ringbuffer_t* rb);
+void rbuffer_insert(char data, volatile ringbuffer_t* rb);
+char rbuffer_remove(volatile ringbuffer_t* rb);
+
+
 #endif /* FIFO_H */
